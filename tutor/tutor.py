@@ -233,6 +233,121 @@ def parse_json_content(content):
         except json.JSONDecodeError:
             return {"_parse_error": True, "raw": content}
 
+def repair_json_contract(raw_content):
+    """Yêu cầu model chỉ sửa cú pháp JSON của chính output vừa tạo.
+
+    DeepSeek đôi khi để dấu nháy kép chưa escape trong answer/quote. Không cố
+    đoán bằng regex (dễ làm sai nội dung); thay vào đó cho model một lượt repair
+    không tool, ép JSON object và cấm thêm fact/citation mới.
+    """
+    repair_messages = [
+        {"role": "system", "content": (
+            "You repair malformed JSON only. Return exactly one valid JSON object "
+            "with these fields: scope, answer, sources, followup_questions. "
+            "Preserve the original meaning and sources; do not add facts, sources, "
+            "or commentary. Escape every quote and newline correctly. "
+            "followup_questions must be exactly three strings."
+        )},
+        {"role": "user", "content": "Malformed tutor output to repair:\n" + raw_content},
+    ]
+    data, latency = chat(repair_messages, max_tokens=2000, tools=None)
+    content = data["choices"][0]["message"].get("content") or ""
+    return parse_json_content(content), content, data.get("usage", {}), latency
+
+
+def contract_fallback():
+    """Output cuối cùng vẫn phải đúng contract, kể cả khi provider repair thất bại."""
+    return {
+        "scope": "out_of_scope",
+        "answer": ("Mình chưa thể định dạng câu trả lời này một cách đáng tin cậy. "
+                   "Bạn hãy thử hỏi lại câu hỏi về nội dung AI evaluations nhé."),
+        "sources": [],
+        "followup_questions": [
+            "Bạn đang muốn hỏi về phần nào của quy trình AI evaluation?",
+            "Bạn có thể nêu khái niệm hoặc slide đang xem không?",
+            "Bạn muốn áp dụng nội dung bài học vào use case nào?",
+        ],
+        "_contract_fallback": True,
+    }
+
+def citation_ids_valid(output, allowed_ids):
+    """Citation chỉ hợp lệ khi có trong corpus *và* vừa được kb_search trả về."""
+    sources = output.get("sources")
+    if not isinstance(sources, list):
+        return False
+    if output.get("scope") == "out_of_scope":
+        return not sources
+    if output.get("scope") != "in_scope":
+        return False
+    # Thiếu sources là một contract lỗi riêng (code check sẽ bắt); không đổi scope
+    # ở đây để test vòng tool-calling và policy answer không bị biến thành fallback.
+    if not sources:
+        return True
+    return all((s.get("doc_id"), s.get("section_id")) in allowed_ids for s in sources)
+
+
+def repair_citation_ids(output, allowed_ids):
+    """Sửa citation sai bằng allow-list của kết quả search hiện tại, không đoán ID."""
+    allowed = [
+        {"doc_id": doc_id, "section_id": section_id}
+        for doc_id, section_id in sorted(allowed_ids)
+    ]
+    repair_messages = [
+        {"role": "system", "content": (
+            "Return exactly one valid JSON tutor output with scope, answer, sources, "
+            "and followup_questions. Keep the answer's meaning. Every source must "
+            "use a doc_id and section_id from the allowed list below; never invent "
+            "an ID. If no allowed source can support the answer, set scope to "
+            "out_of_scope and sources to []. Keep exactly three followup questions."
+        )},
+        {"role": "user", "content": json.dumps(
+            {"output_to_repair": output, "allowed_sources": allowed},
+            ensure_ascii=False
+        )},
+    ]
+    data, latency = chat(repair_messages, max_tokens=2000, tools=None)
+    content = data["choices"][0]["message"].get("content") or ""
+    return parse_json_content(content), content, data.get("usage", {}), latency
+
+
+def add_usage(total, extra):
+    """Cộng usage từ một repair call vào trace gốc."""
+    for key, value in extra.items():
+        if isinstance(value, (int, float)):
+            total[key] = total.get(key, 0) + value
+
+def canonical_quote(section_text, max_words=40):
+    """Lấy một đoạn nguyên văn ngắn từ section để backend, không phải model, phát hành."""
+    text = re.sub(r"\s+", " ", section_text or "").strip()
+    # Bỏ heading đầu section nếu có; ưu tiên câu đầu tiên còn lại để citation dễ đọc.
+    text = re.sub(r"^[^.!?]{0,160}\s+", "", text, count=1)
+    words = text.split()
+    return " ".join(words[:max_words]).strip()
+
+
+def canonicalize_sources(output, corpus_sections, allowed_ids):
+    """Giữ source hợp lệ, bỏ trùng và thay quote paraphrase bằng đoạn nguyên văn.
+
+    Chỉ chạy sau citation guard: mỗi section ở đây đã có trong retrieval hiện tại.
+    """
+    if output.get("scope") == "out_of_scope":
+        output["sources"] = []
+        return output
+    section_by_id = {(s["doc_id"], s["section_id"]): s["text"] for s in corpus_sections}
+    sources, seen = [], set()
+    for source in output.get("sources") or []:
+        key = (source.get("doc_id"), source.get("section_id"))
+        if key in seen or key not in allowed_ids:
+            continue
+        text = section_by_id.get(key)
+        quote = canonical_quote(text)
+        if not quote:
+            continue
+        sources.append({"doc_id": key[0], "section_id": key[1], "quote": quote})
+        seen.add(key)
+    output["sources"] = sources
+    return output
+
 # --- Context slide: học viên hỏi từ một slide cụ thể, prompt phải mang theo
 def format_slide_context(slide):
     """Dòng ngữ cảnh slide cho prompt — trả "" nếu câu hỏi không gắn slide."""
@@ -305,11 +420,47 @@ def call_tutor(question, slide=None, max_steps=6):
             finish = choice.get("finish_reason")
             content = msg.get("content") or ""
             out = parse_json_content(content)
+            repair_raw_content = None
+            if out.get("_parse_error"):
+                try:
+                    repaired, repair_raw_content, repair_usage, repair_latency = repair_json_contract(content)
+                    latency_total += repair_latency
+                    add_usage(usage_total, repair_usage)
+                    if not repaired.get("_parse_error"):
+                        out = repaired
+                        out["_json_repaired"] = True
+                    else:
+                        out = contract_fallback()
+                except Exception as repair_error:
+                    out = contract_fallback()
+                    out["_repair_error"] = str(repair_error)
+            citation_repair_raw_content = None
+            allowed_ids = {(r["doc_id"], r["section_id"]) for r in retrieved}
+            if not out.get("_contract_fallback") and not citation_ids_valid(out, allowed_ids):
+                try:
+                    repaired, citation_repair_raw_content, repair_usage, repair_latency = (
+                        repair_citation_ids(out, allowed_ids)
+                    )
+                    latency_total += repair_latency
+                    add_usage(usage_total, repair_usage)
+                    if citation_ids_valid(repaired, allowed_ids):
+                        out = repaired
+                        out["_citation_repaired"] = True
+                    else:
+                        out = contract_fallback()
+                        out["_citation_fallback"] = True
+                except Exception as repair_error:
+                    out = contract_fallback()
+                    out["_citation_repair_error"] = str(repair_error)
+            if not out.get("_contract_fallback"):
+                out = canonicalize_sources(out, corpus_sections, allowed_ids)
             if finish == "length":
                 out.setdefault("_truncated", True)
             meta = {"raw_content": content, "usage": usage_total,
                     "latency_s": round(latency_total, 2), "finish_reason": finish,
-                    "steps": step + 1, "tool_calls": tool_log, "retrieved": retrieved}
+                    "steps": step + 1, "tool_calls": tool_log, "retrieved": retrieved,
+                    "repair_raw_content": repair_raw_content,
+                    "citation_repair_raw_content": citation_repair_raw_content}
             return out, meta
 
         # Còn tool calls: thực thi rồi nối kết quả vào hội thoại

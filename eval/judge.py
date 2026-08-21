@@ -7,6 +7,7 @@ Judge dùng prompt trong eval/judge_prompt.md (placeholder {{input}} {{answer}} 
 Model judge mặc định khác model tutor (EVAL_JUDGE_MODEL, mặc định openai/gpt-4o-mini)
 để tránh tự chấm chéo cùng một model.
 """
+import argparse
 import csv, json, os, sys
 from pathlib import Path
 
@@ -81,16 +82,27 @@ def print_confusion(verdicts, labels):
     print("Agreement: %d/%d = %.0f%%" % (agree, len(pairs), 100.0 * agree / len(pairs)))
 
 def main():
+    parser = argparse.ArgumentParser(description="Chấm results.jsonl bằng một judge prompt.")
+    parser.add_argument("scenario_ids", nargs="*", help="Chỉ chấm các scenario_id này")
+    parser.add_argument("--prompt", default=PROMPT_PATH,
+                        help="Đường dẫn prompt Markdown (mặc định: judge_prompt.md)")
+    parser.add_argument("--output", default="verdicts.jsonl",
+                        help="File JSONL nhận verdicts")
+    parser.add_argument("--labels", default="labels.csv",
+                        help="File CSV nhãn vàng để tính agreement")
+    args = parser.parse_args()
+
     results = read_jsonl("results.jsonl")
     if not results:
         sys.exit("Không thấy results.jsonl — chạy python3 eval/run_eval.py trước.")
     if not tutor.get_api_key(JUDGE_MODEL):
         sys.exit("Chưa có API key cho judge model %s — xem .env.example." % JUDGE_MODEL)
-    chosen = set(sys.argv[1:])
+    chosen = set(args.scenario_ids)
     rows = [r for r in results if not chosen or r["scenario_id"] in chosen]
     rows = [r for r in rows if "output" in r]  # bỏ row lỗi, không có gì để chấm
-    template = open(PROMPT_PATH, encoding="utf-8").read()
-    print("Chấm %d row bằng judge %s ..." % (len(rows), JUDGE_MODEL))
+    template = open(args.prompt, encoding="utf-8").read()
+    print("Chấm %d row bằng judge %s với prompt %s ..." %
+          (len(rows), JUDGE_MODEL, args.prompt))
 
     verdicts = []
     for i, rec in enumerate(rows, 1):
@@ -112,14 +124,14 @@ def main():
             print("LỖI: %s" % e)
         verdicts.append(v)
 
-    with open("verdicts.jsonl", "w", encoding="utf-8") as f:
+    with open(args.output, "w", encoding="utf-8") as f:
         for v in verdicts:
             f.write(json.dumps(v, ensure_ascii=False) + "\n")
-    print("Ghi %d verdict vào verdicts.jsonl" % len(verdicts))
+    print("Ghi %d verdict vào %s" % (len(verdicts), args.output))
     if _tracer.backend:
         _tracer.flush()
         print("Đã log %d trace judge lên %s." % (len(verdicts), _tracer.backend))
-    print_confusion(verdicts, read_labels())
+    print_confusion(verdicts, read_labels(args.labels))
 
 if __name__ == "__main__":
     main()

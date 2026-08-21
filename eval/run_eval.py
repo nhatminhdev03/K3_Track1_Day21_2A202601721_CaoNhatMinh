@@ -39,6 +39,10 @@ def read_jsonl(path):
 
 def main():
     dataset_path = sys.argv[1] if len(sys.argv) > 1 else "dataset.jsonl"
+    output_path = os.environ.get("EVAL_RESULTS_FILE", "results.jsonl")
+    start = int(os.environ.get("EVAL_START", "0"))
+    end_raw = os.environ.get("EVAL_END")
+    append = os.environ.get("EVAL_APPEND", "").lower() in {"1", "true", "yes"}
     if not os.path.exists(dataset_path):
         sys.exit("Không thấy %s. Tạo bằng: cp data/dataset.example.jsonl dataset.jsonl"
                  % dataset_path)
@@ -49,8 +53,13 @@ def main():
                  "  OPENAI_API_KEY=sk-...     (cho model openai/*)\n"
                  "rồi chạy lại." % tutor.MODEL)
 
-    rows = read_jsonl(dataset_path)
-    print("Dataset: %d câu | model: %s" % (len(rows), tutor.MODEL))
+    all_rows = read_jsonl(dataset_path)
+    end = int(end_raw) if end_raw is not None else len(all_rows)
+    rows = all_rows[start:end]
+    if start < 0 or end < start or end > len(all_rows):
+        sys.exit("Khoảng EVAL_START/EVAL_END không hợp lệ cho dataset %d rows." % len(all_rows))
+    print("Dataset slice: rows %d:%d / %d | model: %s" %
+          (start, end, len(all_rows), tutor.MODEL))
     results, total_cost, t_start = [], 0.0, time.time()
 
     for i, row in enumerate(rows, 1):
@@ -86,11 +95,11 @@ def main():
             print("LỖI: %s" % e)
         results.append(rec)
 
-    with open("results.jsonl", "w", encoding="utf-8") as f:
+    with open(output_path, "a" if append else "w", encoding="utf-8") as f:
         for rec in results:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-    print("\nXong: ghi %d dòng vào results.jsonl | tổng %.1fs | chi phí ~$%.6f"
-          % (len(results), time.time() - t_start, total_cost))
+    print("\nXong: ghi %d dòng vào %s | tổng %.1fs | chi phí ~$%.6f"
+          % (len(results), output_path, time.time() - t_start, total_cost))
     if _tracer.backend:
         _tracer.flush()
         print("Đã log %d trace lên %s (project '%s')."

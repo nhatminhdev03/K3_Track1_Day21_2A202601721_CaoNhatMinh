@@ -65,10 +65,44 @@ def check_quote_verbatim(rec, section_tokens):
     return True, None
 
 
+def check_followup_count(rec):
+    """followup_questions phải là list đúng 3 câu hỏi không rỗng theo tutor contract."""
+    out = rec.get("output") or {}
+    if out.get("_parse_error"):
+        return None, "bỏ qua (JSON vỡ)"
+    followups = out.get("followup_questions")
+    if not isinstance(followups, list) or len(followups) != 3:
+        got = len(followups) if isinstance(followups, list) else type(followups).__name__
+        return False, f"followup_questions phải có đúng 3 câu (nhận {got})"
+    if any(not isinstance(q, str) or not q.strip() for q in followups):
+        return False, "followup_questions có câu rỗng hoặc không phải text"
+    return True, None
+
+
+def check_scope_source_consistency(rec):
+    """In-scope cần ít nhất một source; out-of-scope phải có sources rỗng."""
+    out = rec.get("output") or {}
+    if out.get("_parse_error"):
+        return None, "bỏ qua (JSON vỡ)"
+    scope = out.get("scope")
+    sources = out.get("sources")
+    if scope not in ("in_scope", "out_of_scope"):
+        return False, f"scope không hợp lệ: {scope!r}"
+    if not isinstance(sources, list):
+        return False, "sources không phải list"
+    if scope == "in_scope" and not sources:
+        return False, "in_scope nhưng sources rỗng"
+    if scope == "out_of_scope" and sources:
+        return False, "out_of_scope nhưng vẫn có sources"
+    return True, None
+
+
 CHECKS = [  # thêm check của nhóm vào đây
     ("schema_valid", check_schema),
     ("citation_exists", check_citation_exists),
     ("quote_verbatim", check_quote_verbatim),
+    ("followup_count", check_followup_count),
+    ("scope_source_consistency", check_scope_source_consistency),
 ]
 
 
@@ -86,7 +120,7 @@ def main(path="results.jsonl"):
         sid = rec.get("scenario_id", "?")
         line = [sid]
         for name, fn in CHECKS:
-            if fn is check_schema:
+            if fn in (check_schema, check_followup_count, check_scope_source_consistency):
                 ok, reason = fn(rec)
             elif fn is check_citation_exists:
                 ok, reason = fn(rec, valid_ids)
