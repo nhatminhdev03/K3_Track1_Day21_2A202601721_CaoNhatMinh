@@ -69,7 +69,10 @@ class _LangSmith:
 
     def __init__(self):
         from langsmith import Client
-        self._client = Client()  # tự đọc LANGSMITH_API_KEY / LANGCHAIN_API_KEY
+        # A workspace is required for organization-scoped service keys.  Pass it
+        # explicitly so the SDK sends the correct X-Tenant-Id on trace writes.
+        workspace_id = os.environ.get("LANGSMITH_WORKSPACE_ID") or None
+        self._client = Client(workspace_id=workspace_id)
         self._project = os.environ.get("LANGSMITH_PROJECT", DEFAULT_PROJECT)
 
     def log_run(self, name, inputs=None, outputs=None, metrics=None, metadata=None):
