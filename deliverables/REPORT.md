@@ -329,6 +329,21 @@ Không có scorecard baseline cùng rubric/phiên bản trong evidence, nên **k
 
 **Cụm judge-only:** `sc-03`, `sc-08`, `sc-11`, `sc-12`–`sc-15` đều fail với rationale “không có citation” dù phần lớn là refusal/hỏi lại. Vì prompt judge tổng quát đang đánh đồng “từ chối đúng” với “claim học thuật cần citation”, 6/9 judge fail là lỗi calibration/spec. Không dùng pass rate judge 66.7% làm verdict chất lượng tổng; giữ judge này ở **LLM assist** cho đến khi tách rubric refusal/OOS và có gold labels theo criterion.
 
+### Implementation fixes sau scorecard v1
+
+Ba blocker implementation đã được sửa trong tutor, có evidence targeted tại
+deliverables/evidence/fix-verification-v2.md:
+
+| Blocker v1 | Sửa runtime | Xác minh đã có | Trạng thái metric |
+|---|---|---|---|
+| JSON/schema: 25/27 | Repair JSON một lần; nếu repair lỗi thì fallback đúng contract. | sc-01, sc-21 parse OK; test kit 44/44. | Chưa có full-run v2, không tuyên bố 100%. |
+| Citation ID: 24/27 | Allow-list từ kb_search hiện tại; citation sai không được phát hành. | sc-10 dùng toàn bộ ID hợp lệ trong retrieval. | Chưa có full-run v2, không tuyên bố 100%. |
+| Quote fidelity: 12/25 | Backend gắn quote nguyên văn từ section đã xác nhận và bỏ source trùng. | Một case quote-fail chuyển quote_verbatim sang pass. | Chưa có full-run v2, không tuyên bố ≥95%. |
+
+Các số liệu scorecard, slice breakdown và verdict bên dưới vẫn là **v1**. Điều này
+tránh đổi definition of quality hoặc làm đẹp kết quả giữa chừng; full candidate v2
+phải chạy lại trên đúng dataset v1 trước khi cập nhật verdict.
+
 ### Regression so với baseline
 
 **Baseline đã được freeze:** `results-baseline-v1.jsonl` (đồng thời lưu ở `deliverables/evidence/`) là bản sao bất biến của 27 row `results-v1.jsonl`, trước khi chạy candidate kế tiếp. Regression sẽ là các `scenario_id` chuyển pass → fail, tách riêng theo code và từng criterion judge.
