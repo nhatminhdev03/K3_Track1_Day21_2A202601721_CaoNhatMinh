@@ -22,61 +22,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.151440547894664" />
-      <entry key="MS500" value="2.631141946662728" />
-      <entry key="S2" value="7.208529771407947" />
-      <entry key="S5" value="12.918642863191119" />
-      <entry key="S10" value="17.086390034496088" />
-      <entry key="S30" value="21.273302645402524" />
-      <entry key="S60" value="22.5739931581583" />
-      <entry key="M2" value="23.270464487111866" />
-      <entry key="M5" value="23.704100981454292" />
-      <entry key="M10" value="23.851429404268206" />
-      <entry key="M15" value="23.9082172017622" />
-      <entry key="M30" value="24.855698431412243" />
-      <entry key="H1" value="39.243120287178854" />
-      <entry key="H2" value="113.00915878724696" />
-      <entry key="H4" value="265.04952305720167" />
-      <entry key="D1" value="608.0702072683931" />
-      <entry key="W1" value="706.888940667551" />
+      <entry key="MS100" value="1.0978161449372523" />
+      <entry key="MS500" value="2.3640394886516947" />
+      <entry key="S2" value="4.6140826827221275" />
+      <entry key="S5" value="6.277386083047894" />
+      <entry key="S10" value="7.383728449529486" />
+      <entry key="S30" value="11.999391421176758" />
+      <entry key="S60" value="24.20654134433132" />
+      <entry key="M2" value="50.06467847883573" />
+      <entry key="M5" value="103.45751048003952" />
+      <entry key="M10" value="154.03839671316328" />
+      <entry key="M15" value="187.2629599082958" />
+      <entry key="M30" value="253.29188832270995" />
+      <entry key="H1" value="329.85092468172627" />
+      <entry key="H2" value="418.46518249843905" />
+      <entry key="H4" value="561.493156716315" />
+      <entry key="D1" value="1029.6743474115658" />
+      <entry key="W1" value="1204.9789056434563" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="2.9693156528909386E-26" />
-      <entry key="MS500" value="7.843886006592301E-6" />
-      <entry key="S2" value="0.052921582022657954" />
-      <entry key="S5" value="0.30864065172338473" />
-      <entry key="S10" value="0.5555543643275466" />
-      <entry key="S30" value="0.8220701038788903" />
-      <entry key="S60" value="0.9066808169796526" />
-      <entry key="M2" value="0.9521978875106013" />
-      <entry key="M5" value="0.9805977342908112" />
-      <entry key="M10" value="0.9902545489350906" />
-      <entry key="M15" value="0.9938356343087709" />
-      <entry key="M30" value="1.0354672749687317" />
-      <entry key="H1" value="1.462153197096638" />
-      <entry key="H2" value="2.7977970301293738" />
-      <entry key="H4" value="4.718774683689937" />
-      <entry key="D1" value="8.020949166471215" />
-      <entry key="W1" value="8.851630457736759" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="1.225626151157374E-290" />
+      <entry key="S30" value="4.727418139276626E-97" />
+      <entry key="S60" value="1.1885570377566278E-48" />
+      <entry key="M2" value="1.8873508858132263E-24" />
+      <entry key="M5" value="6.259806519558755E-10" />
+      <entry key="M10" value="4.333584554869507E-5" />
+      <entry key="M15" value="0.0017806563009906769" />
+      <entry key="M30" value="0.07425152234425475" />
+      <entry key="H1" value="0.5177362587990844" />
+      <entry key="H2" value="1.7002385459702238" />
+      <entry key="H4" value="3.910329011458641" />
+      <entry key="D1" value="9.742561928562091" />
+      <entry key="W1" value="11.642109379494743" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.9342523156315462" />
-      <entry key="MS500" value="2.5606166034970514" />
-      <entry key="S2" value="7.201527619825188" />
-      <entry key="S5" value="13.153517294629996" />
-      <entry key="S10" value="17.58154577408864" />
-      <entry key="S30" value="22.06668199925898" />
-      <entry key="S60" value="23.464957340652038" />
-      <entry key="M2" value="24.214433925071457" />
-      <entry key="M5" value="24.681314777879656" />
-      <entry key="M10" value="24.83997623491686" />
-      <entry key="M15" value="24.900910661938564" />
-      <entry key="M30" value="25.89058299294041" />
-      <entry key="H1" value="40.70492021566052" />
-      <entry key="H2" value="115.80666114504825" />
-      <entry key="H4" value="269.7680489522751" />
-      <entry key="D1" value="616.0910810932909" />
-      <entry key="W1" value="715.7405590403116" />
+      <entry key="MS100" value="1.0726413664020324" />
+      <entry key="MS500" value="2.347424819145689" />
+      <entry key="S2" value="4.604831292252454" />
+      <entry key="S5" value="6.271983541457205" />
+      <entry key="S10" value="7.380425198459809" />
+      <entry key="S30" value="11.997499058118809" />
+      <entry key="S60" value="24.20443090933092" />
+      <entry key="M2" value="50.06228007735009" />
+      <entry key="M5" value="103.45548313168922" />
+      <entry key="M10" value="154.0369947192439" />
+      <entry key="M15" value="187.26360684901104" />
+      <entry key="M30" value="253.36539939346298" />
+      <entry key="H1" value="330.36814965654366" />
+      <entry key="H2" value="420.16503918054406" />
+      <entry key="H4" value="565.4031821672556" />
+      <entry key="D1" value="1039.4168045906474" />
+      <entry key="W1" value="1216.6209973695047" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo"><![CDATA[{
@@ -110,6 +110,7 @@
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\aceto\PycharmProjects\VinUni-AI-in-Action\Lab-Day21\K3_Track1_Day21_2A202601721_CaoNhatMinh" />
+      <recent name="C:\Users\aceto\PycharmProjects\VinUni-AI-in-Action\Lab-Day21\K3_Track1_Day21_2A202601721_CaoNhatMinh\labels" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\aceto\PycharmProjects\VinUni-AI-in-Action\Lab-Day21\K3_Track1_Day21_2A202601721_CaoNhatMinh\labels" />
